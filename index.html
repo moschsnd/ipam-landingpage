@@ -137,7 +137,7 @@ html:not(.js) .hero-visual, html:not(.js) .pv, html:not(.js) .form { display: no
 
 /* ---------- Hero ---------- */
 
-.hero { padding: clamp(40px, 5.5vw, 76px) 0 clamp(48px, 5.5vw, 80px); overflow: hidden; }
+.hero { --hero-pt: clamp(40px, 5.5vw, 76px); --hero-pb: clamp(48px, 5.5vw, 80px); padding: var(--hero-pt) 0 var(--hero-pb); overflow: hidden; }
 .hero-grid { display: grid; grid-template-columns: minmax(0, 1.16fr) minmax(0, 1fr); grid-template-areas: 'copy visual'; column-gap: clamp(32px, 4vw, 64px); align-items: center; }
 .hero-copy { grid-area: copy; }
 /* Bild ragt in den rechten Rand, damit die Screens größer und lesbarer werden */
@@ -149,6 +149,16 @@ html:not(.js) .hero-visual, html:not(.js) .pv, html:not(.js) .form { display: no
 .hero h1 .accent { color: var(--green); }
 .hero .lead { max-width: 35em; }
 .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 32px; }
+/* Höhe, die dem Smartphone im Hero bleibt: sichtbarer Bereich (svh = Browserleisten eingerechnet, wichtig für Safari am iPad) abzüglich Kopfzeile und Hero-Abstände. app.js (data-fit) skaliert das Bild darauf herunter, damit der Hero ohne Scrollen ins Bild passt. */
+.hero-visual .scaler { --fit-h: calc(100vh - var(--header-h) - var(--hero-pt) - var(--hero-pb)); }
+@supports (height: 100svh) { .hero-visual .scaler { --fit-h: calc(100svh - var(--header-h) - var(--hero-pt) - var(--hero-pb)); } }
+/* Niedriger Bildschirm im Querformat (iPad, Laptop): Hero wird flacher, alles rückt nach oben */
+@media (min-width: 901px) and (max-height: 840px) {
+  :root { --header-h: 60px; }
+  .hero { --hero-pt: 20px; --hero-pb: 28px; }
+  .hero h1 { font-size: clamp(30px, 3.1vw, 44px); margin: 16px 0; }
+  .hero-actions { margin-top: 24px; }
+}
 
 /* ---------- Skalierung der Mockups ---------- */
 
@@ -980,6 +990,7 @@ html:not(.js) .hero-visual, html:not(.js) .pv, html:not(.js) .form { display: no
   .hero-grid, .loki-grid, .cta-grid, .feature-head, .lower, .lower--wide, .nz-grid { grid-template-columns: minmax(0, 1fr); }
   .hero-grid { grid-template-areas: 'copy' 'visual'; }
   .hero-visual { margin: 36px 0 0; }
+  .hero-visual .scaler { --fit-h: 9999px; }
   .team-grid { grid-template-columns: minmax(0, 1fr); }
   .control { position: relative; top: auto; }
   .lower > div:first-child { max-width: 380px; }
@@ -1659,7 +1670,7 @@ html:not(.js) .hero-visual, html:not(.js) .pv, html:not(.js) .form { display: no
             </div>
           </div>
           <div class="hero-visual">
-            <div class="scaler" data-scaler="" data-w="320" data-h="704" data-max="1"><div class="scaler-inner" data-mock="hero"></div></div>
+            <div class="scaler" data-scaler="" data-w="320" data-h="704" data-max="1" data-fit="" data-min="0.6"><div class="scaler-inner" data-mock="hero"></div></div>
           </div>
         </div>
       </div>
@@ -3099,6 +3110,14 @@ html:not(.js) .hero-visual, html:not(.js) .pv, html:not(.js) .form { display: no
 
   /* ---------- Skalierung ---------- */
 
+  function fitHeight(sc) {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;width:0;height:var(--fit-h,0px)';
+    sc.appendChild(probe);
+    const px = probe.offsetHeight;
+    probe.remove();
+    return px;
+  }
   function fit(sc) {
     const inner = sc.firstElementChild;
     if (!inner) return;
@@ -3108,7 +3127,12 @@ html:not(.js) .hero-visual, html:not(.js) .pv, html:not(.js) .form { display: no
     inner.style.height = h + 'px';
     const avail = sc.clientWidth;
     if (!avail) return;
-    const s = Math.min(+sc.dataset.max || 1, avail / w);
+    let s = Math.min(+sc.dataset.max || 1, avail / w);
+    // data-fit: zusätzlich auf die per CSS (--fit-h) vorgegebene Höhe begrenzen, aber nicht unter data-min
+    if (sc.dataset.fit !== undefined) {
+      const maxH = fitHeight(sc);
+      if (maxH > 0) s = Math.min(s, Math.max(+sc.dataset.min || 0.6, maxH / h));
+    }
     inner.style.transform = `scale(${s})`;
     inner.style.left = Math.max(0, (avail - w * s) / 2) + 'px';
     sc.style.height = Math.ceil(h * s) + 'px';
@@ -3116,7 +3140,9 @@ html:not(.js) .hero-visual, html:not(.js) .pv, html:not(.js) .form { display: no
   const ro = 'ResizeObserver' in window ? new ResizeObserver((entries) => entries.forEach((e) => fit(e.target))) : null;
   function initScalers() {
     $$('[data-scaler]').forEach((sc) => { fit(sc); if (ro) ro.observe(sc); });
-    if (!ro) window.addEventListener('resize', () => $$('[data-scaler]').forEach(fit));
+    // Die Breite beobachtet der ResizeObserver; die Höhe des Fensters (Drehen des iPad, Fenstergröße) nicht
+    window.addEventListener('resize', () => $$(ro ? '[data-scaler][data-fit]' : '[data-scaler]').forEach(fit));
+    window.addEventListener('orientationchange', () => setTimeout(() => $$('[data-scaler][data-fit]').forEach(fit), 250));
   }
 
   /* ---------- Regler ---------- */
