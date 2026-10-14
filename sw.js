@@ -1,4 +1,4 @@
-const CACHE = 'ipam-v5-7e6d7bfdf6';
+const CACHE = 'ipam-v5-5a0a3e0644';
 const FILES = ['./', './index.html', './manifest.json', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

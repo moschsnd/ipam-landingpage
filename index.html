@@ -1759,7 +1759,7 @@ html:not(.js) .hero-visual, html:not(.js) .pv, html:not(.js) .form { display: no
           <p class="lead">Tragen Sie drei Werte aus Ihrem Werk ein. Gerechnet wird mit den Zielwerten für den Pilotbetrieb.</p>
           <div class="nz-f">
             <div class="nz-fld"><label for="nz-ma">Mitarbeitende in Instandhaltung und Technologie</label><div class="nz-row"><input type="range" id="nz-ma" min="2" max="80" step="1" value="12"><output for="nz-ma" data-nz-o="ma">12</output></div></div>
-            <div class="nz-fld"><label for="nz-h">Ungeplante Stillstandsstunden pro Monat</label><div class="nz-row"><input type="range" id="nz-h" min="1" max="80" step="1" value="10"><output for="nz-h" data-nz-o="h">10 h</output></div></div>
+            <div class="nz-fld"><label for="nz-h">Ungeplante Stillstandsstunden pro Monat</label><div class="nz-row"><input type="range" id="nz-h" min="1" max="500" step="1" value="40"><output for="nz-h" data-nz-o="h">40 h</output></div></div>
             <div class="nz-fld"><label for="nz-k">Kosten je Stillstandsstunde</label><div class="nz-row"><input type="range" id="nz-k" min="200" max="5000" step="20" value="1660"><output for="nz-k" data-nz-o="k">1.660 €</output></div></div>
           </div>
         </div>
@@ -3134,7 +3134,9 @@ html:not(.js) .hero-visual, html:not(.js) .pv, html:not(.js) .form { display: no
       if (maxH > 0) s = Math.min(s, Math.max(+sc.dataset.min || 0.6, maxH / h));
     }
     inner.style.transform = `scale(${s})`;
-    inner.style.left = Math.max(0, (avail - w * s) / 2) + 'px';
+    // Waagerechte Lage im Rahmen per CSS (--align: 0 links, .5 mittig, 1 rechts), Standard mittig
+    const align = parseFloat(getComputedStyle(sc).getPropertyValue('--align'));
+    inner.style.left = Math.max(0, (avail - w * s) * (isNaN(align) ? 0.5 : align)) + 'px';
     sc.style.height = Math.ceil(h * s) + 'px';
   }
   const ro = 'ResizeObserver' in window ? new ResizeObserver((entries) => entries.forEach((e) => fit(e.target))) : null;
